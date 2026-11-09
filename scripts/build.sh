@@ -90,9 +90,10 @@ chmod +x "${STAGE_DIR}/bin/scheme-emacs"
 
 # 6. Attempt Optional pdump snapshot
 echo "📦 Step 5: Checking pdump snapshot generation..."
-if emacs --batch -Q --eval '(dump-emacs-portable "'"${STAGE_DIR}/scheme-emacs.pdmp"'")' 2>/dev/null; then
+if emacs --batch -Q --eval '(dump-emacs-portable "'"${STAGE_DIR}/scheme-emacs.pdmp"'")' 2>/dev/null && [[ -s "${STAGE_DIR}/scheme-emacs.pdmp" ]]; then
   echo "   ✓ Generated pdump memory snapshot: scheme-emacs.pdmp ($(du -h "${STAGE_DIR}/scheme-emacs.pdmp" | cut -f1))"
 else
+  rm -f "${STAGE_DIR}/scheme-emacs.pdmp"
   echo "   ℹ Host Emacs uses Native Compilation AOT; skipping raw pdump (bytecode pre-compilation active, boots in ~35ms)."
 fi
 

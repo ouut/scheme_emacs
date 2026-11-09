@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Scheme Emacs
+GenericName=Text Editor and Scheme IDE
+Comment=GNU Emacs customized for Rust Steel Scheme with Strict Paredit
+Exec=scheme-emacs %F
+Icon=scheme-emacs
+Terminal=false
+Type=Application
+Categories=Development;TextEditor;IDE;
+MimeType=text/x-scheme;text/plain;
+Keywords=scheme;lisp;emacs;editor;ide;steel;

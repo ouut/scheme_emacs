@@ -119,45 +119,63 @@ emacs -batch -l /workspace/scheme_emacs/test_config.el -f ert-run-tests-batch-an
 
 ---
 
-## 📦 独立二进制分发与 CI/CD 自动构建 (Standalone Release)
+## 📦 全平台独立绿色版分发与 CI/CD 自动构建 (Standalone Multi-Platform Release)
 
-本项目支持将 **Emacs 运行时配置 + 全部预装插件 (.elc) + Rust Steel 解释器二进制** 完整组装打包为独立的免安装分发包（冷启动耗时仅约 **35ms**，不污染用户本地 `~/.emacs.d`）。
+本项目提供 **Linux、macOS、Windows 三大平台 100% 独立自包含的绿色免安装发行版**。每个分发包均内置了 **GNU Emacs 核心引擎 + Rust Steel Scheme 解释器 + 全量预编译字节码 (.elc) + Vendored 离线扩展包**，实现**零外部依赖、不污染系统、开箱即用**。
 
-### 1. 本地一键打包构建
-在项目根目录运行构建脚本：
+### 1. 三大平台绿色免安装产物一览
+
+| 平台 | 产物形态 | 使用方式 | 特性说明 |
+| :--- | :--- | :--- | :--- |
+| **Linux** | **`scheme-emacs-*.AppImage`**<br>`scheme-emacs-*.tar.gz` | `chmod +x *.AppImage && ./*.AppImage sample.scm` | 纯单文件二进制（AppImage），全内置 Emacs 与 Steel，任何 Linux 发行版免装运行；同时提供 6.7MB 轻量配置包（tar.gz） |
+| **macOS** | **`SchemeEmacs-*.dmg`**<br>`SchemeEmacs-*.zip` | 打开 DMG 拖入 Applications 或解压即用 | 原生 macOS Application Bundle（Universal 架构支持 Apple Silicon M系列与 Intel），内置 Steel 与原生 Emacs |
+| **Windows** | **`scheme-emacs-*-windows-x86_64.zip`** | 解压后双击 **`run.bat`** (GUI) 或 **`run-terminal.bat`** (控制台) | 纯绿色便携包，内置 GNU Emacs 29.4、`steel.exe` 及运行时 DLL，不写注册表，随拷随用 |
+
+---
+
+### 2. 各平台快速启动指南
+
+#### 🐧 Linux 用户
 ```bash
-./scripts/build.sh
-```
-该脚本会自动：
-1. 预编译所有核心 Elisp 模块为字节码（`.elc`）。
-2. 下载并烘焙所有第三方依赖包至 `elpa/` 目录。
-3. 复制并剥离调试符号（`strip`）将 Rust `steel` 解释器打包进 `bin/`。
-4. 尝试进行 `pdump` 内存快照预转储。
-5. 在 `dist/` 目录下生成独立归档文件 `scheme-emacs-<version>-<os>-<arch>.tar.gz` 及 SHA-256 校验码。
-
-### 2. 用户下载即用
-解压后无需配置任何环境或插件源，直接运行内置启动器：
-```bash
-tar -xzf scheme-emacs-*.tar.gz
-cd scheme-emacs
-
-# 终端模式 (冷启动 ~0.03s)
-./bin/scheme-emacs -nw sample.scm
-
-# GUI 模式
-./bin/scheme-emacs sample.scm
+# 赋予执行权限并直接运行单二进制 AppImage (免装 Emacs / 免装 Rust)
+chmod +x scheme-emacs-*-linux-x86_64.AppImage
+./scheme-emacs-*-linux-x86_64.AppImage sample.scm
 ```
 
-### 3. GitHub Actions 自动化云端发布
-仓库配置了 [`.github/workflows/release.yml`](.github/workflows/release.yml)。当你在本地推送版本标签时：
+#### 🍎 macOS 用户
+1. 下载 `SchemeEmacs-*-macos.dmg`，双击挂载后将 `SchemeEmacs.app` 拖入 `Applications` 文件夹；
+2. 双击图标直接运行；如需在终端快速调起，可在 `~/.zshrc` 添加快捷别名：
+   ```bash
+   alias scheme-emacs="/Applications/SchemeEmacs.app/Contents/MacOS/SchemeEmacs"
+   ```
+> *注：首次打开若遇 macOS Gatekeeper 提示，在“系统设置 -> 隐私与安全性”中允许打开，或在终端运行 `xattr -cr /Applications/SchemeEmacs.app` 即可。*
+
+#### 🪟 Windows 用户
+1. 下载 `scheme-emacs-*-windows-x86_64.zip` 并解压到任意目录（例如 `D:\tools\scheme-emacs` 或 U 盘）；
+2. **双击 `run.bat`**：启动图形界面 Emacs（自动静默后台，不弹出 DOS 黑框）；
+3. **双击 `run-terminal.bat`**：在当前 Windows Terminal / CMD 窗口中以终端字符模式运行。
+
+---
+
+### 3. 本地全平台打包脚本 (scripts/)
+* **`scripts/build.sh`**：构建 Linux 轻量 profile 归档（`.tar.gz`）。
+* **`scripts/build-appimage.sh`**：组装打包 Linux 单二进制 `AppImage`。
+* **`scripts/build-macos.sh`**：组装打包 macOS `SchemeEmacs.app`、`.zip` 与 `.dmg` 镜像。
+* **`scripts/build-windows.ps1`**：组装打包 Windows 绿色便携包（`.zip`）。
+
+---
+
+### 4. GitHub Actions 自动化云端矩阵构建
+仓库配置了全自动跨平台 CI/CD 工作流 [`.github/workflows/release.yml`](.github/workflows/release.yml)。当推送版本标签时：
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
-GitHub Actions 自动触发：
-* 自动拉取环境并构建 Rust Steel 0.8.2 稳定版。
-* 运行 ERT 回归测试矩阵，确保 7 项测试全绿。
-* 自动打包产出 tar.gz 分发包，并发布至 [GitHub Releases](https://github.com/ouut/scheme_emacs/releases) 页面供直接下载。
+云端流水线将同时启动三台虚拟机并行构建：
+* 🐧 **Ubuntu Runner**：编译 Linux 版 Steel，运行回归测试，产出 `AppImage` 与 `tar.gz`；
+* 🍎 **macOS Runner**：编译 Apple Silicon 原生 Steel，产出 Universal `SchemeEmacs.dmg` 与 `.zip`；
+* 🪟 **Windows Runner**：编译 Windows 原生 `steel.exe`，注入 Emacs 29.4，产出 Windows 便携版；
+* 🚀 **Release Aggregator**：聚合三端所有构建产物与校验哈希，全自动同步发布至 [GitHub Releases](https://github.com/ouut/scheme_emacs/releases)。
 
 ---
 
@@ -167,18 +185,25 @@ GitHub Actions 自动触发：
 /workspace/scheme_emacs/
 ├── .github/
 │   └── workflows/
-│       └── release.yml   # GitHub Actions 自动化测试与 Release 发布工作流
+│       └── release.yml     # 跨平台 (Linux/macOS/Windows) 自动化测试与 Release 发布流
+├── assets/
+│   ├── scheme-emacs.svg    # 专属设计矢量图标 (λ + Emacs环 + 括号美学)
+│   ├── scheme-emacs.png    # 高清光栅应用图标
+│   └── scheme-emacs.desktop# Linux XDG 桌面入口规范文件
 ├── bin/
-│   └── scheme-emacs      # 独立启动器 (自动寻路内置 steel 与独立环境)
+│   └── scheme-emacs        # Linux/macOS 独立便携启动脚本
 ├── scripts/
-│   └── build.sh          # 方案 4 独立打包与预转储构建脚本
-├── early-init.el         # 启动性能优化 (GC 阈值 / 抑制早期 UI 闪烁)
-├── init.el               # 入口配置文件 (PATH 注入 / 包自动拉取 / 平台适配)
+│   ├── build.sh            # Linux 轻量 profile 构建脚本
+│   ├── build-appimage.sh   # Linux 单文件 AppImage 打包脚本
+│   ├── build-macos.sh      # macOS .app / .dmg / .zip 打包脚本
+│   └── build-windows.ps1   # Windows 绿色便携包打包脚本 (PowerShell)
+├── early-init.el           # 启动性能优化 (GC 阈值 / 抑制早期 UI 闪烁)
+├── init.el                 # 入口配置文件 (PATH 注入 / 包自动拉取 / 平台适配)
 ├── lisp/
-│   ├── strict-paredit.el # Strict Paredit H-J-K-L + W/S 核心变形矩阵
-│   ├── steel-scheme.el   # Steel 解释器联动 / REPL 引擎 / 求值 DWIM / 语法高亮
-│   └── ui.el             # 主题 / 高对比度注释 / 彩虹括号 / Which-Key / 补全生态
-├── sample.scm            # 完整的 Steel Scheme 互动演练与快捷键靶场
-├── test_config.el        # 自动化回归测试套件 (7/7 全部通过)
-└── README.md             # 本手册
+│   ├── strict-paredit.el   # Strict Paredit H-J-K-L + W/S 核心变形矩阵
+│   ├── steel-scheme.el     # Steel 解释器联动 / REPL 引擎 / 求值 DWIM / 语法高亮
+│   └── ui.el               # 主题 / 高对比度注释 / 彩虹括号 / Which-Key / 补全生态
+├── sample.scm              # 完整的 Steel Scheme 互动演练与快捷键靶场
+├── test_config.el          # 自动化回归测试套件 (7/7 全部通过)
+└── README.md               # 本手册
 ```

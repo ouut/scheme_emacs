@@ -1,4 +1,4 @@
-name: Build & Release Standalone Distribution
+name: Multi-Platform Standalone Release
 
 on:
   push:
@@ -10,8 +10,11 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    name: Build & Release Standalone Bundle
+  # ============================================================================
+  # 1. LINUX BUILD (Lightweight Tarball + Standalone AppImage)
+  # ============================================================================
+  build-linux:
+    name: Build Linux Distributions (AppImage & Tarball)
     runs-on: ubuntu-latest
 
     steps:
@@ -19,6 +22,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Compute version string
+        id: vars
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          if [[ -z "${VERSION}" || "${VERSION}" == "main" ]]; then
+            VERSION="v0.2.0-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -44,38 +57,187 @@ jobs:
           strip bin/steel
           echo "Steel version: $(./bin/steel --version)"
 
-      - name: Install Emacs
+      - name: Install Emacs & AppImage Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y emacs-nox
+          sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64 || true
 
       - name: Run ERT Automated Test Suite
         run: |
           emacs-nox -batch -l test_config.el -f ert-run-tests-batch-and-exit
 
-      - name: Build Standalone Distribution Package
+      - name: Build Lightweight Distribution Tarball
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          ./scripts/build.sh
+
+      - name: Build Standalone AppImage (Zero Dependency)
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          ./scripts/build-appimage.sh
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-linux
+          path: |
+            dist/*.tar.gz*
+            dist/*.AppImage*
+
+  # ============================================================================
+  # 2. MACOS BUILD (Universal DMG & Portable ZIP)
+  # ============================================================================
+  build-macos:
+    name: Build macOS Distribution (DMG & ZIP)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version string
+        id: vars
+        shell: bash
         run: |
           VERSION="${{ github.ref_name }}"
           if [[ -z "${VERSION}" || "${VERSION}" == "main" ]]; then
-            VERSION="v0.1.0-$(git rev-parse --short HEAD)"
+            VERSION="v0.2.0-$(git rev-parse --short HEAD)"
           fi
-          VERSION="${VERSION}" ./scripts/build.sh
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Upload Build Artifacts to CI Run
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/steel
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-steel-0.8.2
+
+      - name: Install Rust Steel Scheme Interpreter
+        run: |
+          if ! command -v steel >/dev/null 2>&1; then
+            echo "Installing steel-interpreter 0.8.2 for macOS..."
+            cargo install steel-interpreter --version 0.8.2 --locked
+          fi
+          mkdir -p bin
+          cp "$(command -v steel)" bin/steel
+          strip bin/steel 2>/dev/null || true
+          echo "Steel version: $(./bin/steel --version)"
+
+      - name: Build macOS Application Bundle & DMG
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          ./scripts/build-macos.sh
+
+      - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: scheme-emacs-release-artifacts
+          name: artifacts-macos
           path: |
-            dist/*.tar.gz
-            dist/*.sha256
+            dist/*.dmg*
+            dist/*.zip*
+
+  # ============================================================================
+  # 3. WINDOWS BUILD (Portable Distribution ZIP)
+  # ============================================================================
+  build-windows:
+    name: Build Windows Distribution (Portable ZIP)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version string
+        id: vars
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          if [[ -z "${VERSION}" || "${VERSION}" == "main" ]]; then
+            VERSION="v0.2.0-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/steel.exe
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-steel-0.8.2
+
+      - name: Install Rust Steel Scheme Interpreter
+        shell: pwsh
+        run: |
+          $steelCmd = Get-Command "steel.exe" -ErrorAction SilentlyContinue
+          if (-not $steelCmd) {
+            Write-Host "Installing steel-interpreter 0.8.2 for Windows..."
+            cargo install steel-interpreter --version 0.8.2 --locked
+          }
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          Copy-Item (Get-Command "steel.exe").Source -Destination bin\steel.exe
+          Write-Host "Steel version: $(.\bin\steel.exe --version)"
+
+      - name: Build Windows Portable Package
+        shell: pwsh
+        run: |
+          .\scripts\build-windows.ps1 -Version "${{ steps.vars.outputs.version }}"
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-windows
+          path: |
+            dist/*.zip*
+
+  # ============================================================================
+  # 4. PUBLISH RELEASE (Aggregates all platforms into GitHub Release)
+  # ============================================================================
+  publish-release:
+    name: Publish Multi-Platform Release
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifacts-*
+          path: release-dist
+          merge-multiple: true
+
+      - name: Display Release Artifacts & Checksums
+        shell: bash
+        run: |
+          echo "======================================================================"
+          echo "📦 All Platform Release Artifacts Ready for Publishing:"
+          echo "======================================================================"
+          ls -lh release-dist/
+          echo "======================================================================"
 
       - name: Publish to GitHub Releases
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*.tar.gz
-            dist/*.sha256
+          files: release-dist/*
           draft: false
           prerelease: false
           generate_release_notes: true

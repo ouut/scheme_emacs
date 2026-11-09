@@ -270,14 +270,17 @@ git push origin v0.2.0
 /workspace/scheme_emacs/
 ├── .github/
 │   └── workflows/
-│       └── release.yml     # 跨平台 (Linux/macOS/Windows) 自动化测试与 Release 发布流
+│       └── release.yml     # 跨平台 (Linux/macOS/Windows) 自动化测试与 Release 发布流水线
 ├── assets/
 │   ├── scheme-emacs.svg    # 专属设计矢量图标 (λ + Emacs环 + 括号美学)
 │   ├── scheme-emacs.png    # 高清光栅应用图标
 │   └── scheme-emacs.desktop# Linux XDG 桌面入口规范文件
 ├── bin/
-│   └── scheme-emacs        # Linux/macOS 独立便携启动脚本
+│   └── scheme-emacs        # Linux/macOS 独立便携启动脚本 (沙箱隔离 ~/.emacs.d)
+├── scheme-emacs.sh         # 🚀 Linux 一键安装、启动与自我持久化通用 Runner (curl | bash 专用)
+├── Makefile                # 常用开发任务 (make setup, test, run, compile, clean)
 ├── scripts/
+│   ├── setup-dev.sh        # 本地开发环境一键搭建脚本 (优先拉取官方预编译二进制)
 │   ├── build.sh            # Linux 轻量 profile 构建脚本
 │   ├── build-appimage.sh   # Linux 单文件 AppImage 打包脚本
 │   ├── build-macos.sh      # macOS .app / .dmg / .zip 打包脚本

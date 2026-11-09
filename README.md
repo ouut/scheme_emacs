@@ -114,8 +114,68 @@ emacs -nw /workspace/scheme_emacs/sample.scm
 ### 2. 运行自动化单元测试套件
 本项目包含完整的 ERT (Emacs Regression Testing) 测试矩阵，覆盖 17 个按键映射、结构变形与真实 Steel REPL 通信：
 ```bash
-emacs -batch -l /workspace/scheme_emacs/test_config.el -f ert-run-tests-batch-and-exit
+make test
+# 或使用原生命令:
+emacs -batch -l test_config.el -f ert-run-tests-batch-and-exit
 ```
+
+---
+
+## 🛠️ 本地开发环境搭建与贡献指南 (Developer Guide)
+
+如果你需要二次开发、调试配置或向本项目贡献代码，可以通过以下步骤极速搭建完整的本地开发环境：
+
+### 1. 前置依赖要求
+* **GNU Emacs 28+**（建议 29+）：
+  * Ubuntu / Debian: `sudo apt install emacs-nox`（终端版）或 `sudo apt install emacs`（图形版）
+  * macOS: `brew install emacs`
+  * Arch Linux: `sudo pacman -S emacs`
+  * Fedora: `sudo dnf install emacs`
+* **Rust & Cargo**（1.70+）：
+  * 官方安装：`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+---
+
+### 2. 一键自动化配置（推荐）
+
+Clone 仓库后，只需在项目根目录执行：
+```bash
+make setup
+# 或直接运行初始化脚本:
+./scripts/setup-dev.sh
+```
+
+**该脚本全自动执行以下 5 项任务**：
+1. **环境检测**：检查 Emacs 与 Rust 编译器是否完备，缺失时提示一键安装命令；
+2. **构建 Steel**：自动通过 `cargo install steel-interpreter --version 0.8.2 --locked` 编译 Rust 官方解释器，并在 `bin/steel` 就绪；
+3. **Vendoring 插件依赖**：以批处理隔离模式运行 Emacs，从 MELPA 镜像预下载所有需要的外部插件至本地 `elpa/` 目录；
+4. **全量 AOT 预编译**：调用 `batch-byte-compile` 将所有 `.el` 源码预编译为 `.elc` 字节码；
+5. **回归测试自检**：自动运行 7 项 ERT 单元测试套件，确保环境 100% 正常。
+
+---
+
+### 3. 日常开发常用命令速查 (`make`)
+
+| 命令 | 对应动作 | 说明 |
+| :--- | :--- | :--- |
+| **`make setup`** | `./scripts/setup-dev.sh` | 首次配置或更新开发依赖环境 |
+| **`make test`** | `emacs -batch -l test_config.el ...` | 运行 ERT 自动化回归测试（TDD 模式） |
+| **`make run`** | `./bin/scheme-emacs sample.scm` | 以沙箱隔离模式启动 Scheme Emacs（不碰 `~/.emacs.d`） |
+| **`make run-nw`**| `./bin/scheme-emacs -nw sample.scm`| 终端字符模式启动 |
+| **`make compile`**| `batch-byte-compile` | 重新编译所有 `.el` 文件为 `.elc` 字节码 |
+| **`make clean`** | 清理编译产物 | 删除所有 `.elc` 字节码与本地构建缓存 |
+| **`make build`** | `./scripts/build.sh` | 本地打包轻量绿色 profile 分发包 |
+
+---
+
+### 4. 源码结构与二次开发入口
+
+* **改动或新增快捷键、结构变换**：
+  * 修改 [`lisp/strict-paredit.el`](lisp/strict-paredit.el)，并在 [`test_config.el`](test_config.el) 中追加对应的断言测试用例。
+* **修改 Steel Scheme 交互与 REPL 协议**：
+  * 修改 [`lisp/steel-scheme.el`](lisp/steel-scheme.el)，调试 comint 管道通信、求值高亮与输出过滤器。
+* **定制配色主题、字体与补全扩展**：
+  * 修改 [`lisp/ui.el`](lisp/ui.el)，可自由切换 `doom-one`、`doom-gruvbox` 或自定义注释颜色。
 
 ---
 

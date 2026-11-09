@@ -33,28 +33,12 @@ jobs:
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/steel
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-steel-0.8.2
-
-      - name: Install Rust Steel Scheme Interpreter
+      - name: Download Official Pre-compiled Steel Scheme Interpreter
         run: |
-          if ! command -v steel >/dev/null 2>&1; then
-            echo "Installing steel-interpreter 0.8.2..."
-            cargo install steel-interpreter --version 0.8.2 --locked
-          fi
           mkdir -p bin
-          cp "$(command -v steel)" bin/steel
-          strip bin/steel
+          curl -fsSL "https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-x86_64-unknown-linux-gnu.tar.xz" | tar -xJf - --strip-components=1 -C bin steel-interpreter-x86_64-unknown-linux-gnu/steel
+          chmod +x bin/steel
+          strip bin/steel 2>/dev/null || true
           echo "Steel version: $(./bin/steel --version)"
 
       - name: Install Emacs & AppImage Dependencies
@@ -110,27 +94,11 @@ jobs:
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/steel
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-steel-0.8.2
-
-      - name: Install Rust Steel Scheme Interpreter
+      - name: Download Official Pre-compiled Steel Scheme Interpreter
         run: |
-          if ! command -v steel >/dev/null 2>&1; then
-            echo "Installing steel-interpreter 0.8.2 for macOS..."
-            cargo install steel-interpreter --version 0.8.2 --locked
-          fi
           mkdir -p bin
-          cp "$(command -v steel)" bin/steel
+          curl -fsSL "https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-aarch64-apple-darwin.tar.xz" | tar -xJf - --strip-components=1 -C bin steel-interpreter-aarch64-apple-darwin/steel
+          chmod +x bin/steel
           strip bin/steel 2>/dev/null || true
           echo "Steel version: $(./bin/steel --version)"
 
@@ -171,29 +139,14 @@ jobs:
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/steel.exe
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-steel-0.8.2
-
-      - name: Install Rust Steel Scheme Interpreter
+      - name: Download Official Pre-compiled Steel Scheme Interpreter
         shell: pwsh
         run: |
-          $steelCmd = Get-Command "steel.exe" -ErrorAction SilentlyContinue
-          if (-not $steelCmd) {
-            Write-Host "Installing steel-interpreter 0.8.2 for Windows..."
-            cargo install steel-interpreter --version 0.8.2 --locked
-          }
-          New-Item -ItemType Directory -Force -Path bin | Out-Null
-          Copy-Item (Get-Command "steel.exe").Source -Destination bin\steel.exe
+          New-Item -ItemType Directory -Force -Path bin, temp-steel | Out-Null
+          curl.exe -fsSL -o temp-steel\steel.zip "https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-x86_64-pc-windows-msvc.zip"
+          Expand-Archive -Path temp-steel\steel.zip -DestinationPath temp-steel -Force
+          Copy-Item temp-steel\steel.exe bin\steel.exe -Force
+          Remove-Item -Recurse -Force temp-steel
           Write-Host "Steel version: $(.\bin\steel.exe --version)"
 
       - name: Build Windows Portable Package

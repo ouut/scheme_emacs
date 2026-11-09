@@ -33,16 +33,13 @@ else
     exit 1
 fi
 
-# 2. Check Rust & Cargo
-echo -e "\n${BLUE}[2/5] Checking Rust & Cargo...${NC}"
+# 2. Check Rust & Cargo (Optional if downloading pre-compiled)
+echo -e "\n${BLUE}[2/5] Checking Rust & Cargo (Optional)...${NC}"
 if command -v cargo >/dev/null 2>&1; then
     CARGO_VERSION="$(cargo --version)"
     echo -e "${GREEN}✓ Found Cargo:${NC} ${CARGO_VERSION}"
 else
-    echo -e "${RED}✗ Rust / Cargo is not installed!${NC}"
-    echo "Please install Rust toolchain via: https://rustup.rs/"
-    echo "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    exit 1
+    echo -e "${YELLOW}ℹ Cargo not found; setup will download official pre-compiled Steel binary.${NC}"
 fi
 
 # 3. Check & Install Rust Steel Scheme Interpreter
@@ -59,9 +56,34 @@ elif command -v steel >/dev/null 2>&1; then
 fi
 
 if [[ -z "${STEEL_BIN}" ]]; then
-    echo -e "${YELLOW}Steel Scheme interpreter not found. Installing steel-interpreter 0.8.2 via cargo...${NC}"
-    cargo install steel-interpreter --version 0.8.2 --locked
-    STEEL_BIN="${HOME}/.cargo/bin/steel"
+    echo -e "${YELLOW}Steel Scheme interpreter not found. Downloading official pre-compiled binary...${NC}"
+    OS="$(uname -s)"
+    ARCH="$(uname -m)"
+    DOWNLOADED=false
+    
+    if [[ "${OS}" == "Linux" && "${ARCH}" == "x86_64" ]]; then
+        URL="https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-x86_64-unknown-linux-gnu.tar.xz"
+        curl -fsSL "${URL}" | tar -xJf - --strip-components=1 -C "${ROOT_DIR}/bin" steel-interpreter-x86_64-unknown-linux-gnu/steel 2>/dev/null && DOWNLOADED=true
+    elif [[ "${OS}" == "Linux" && "${ARCH}" == "aarch64" ]]; then
+        URL="https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-aarch64-unknown-linux-gnu.tar.xz"
+        curl -fsSL "${URL}" | tar -xJf - --strip-components=1 -C "${ROOT_DIR}/bin" steel-interpreter-aarch64-unknown-linux-gnu/steel 2>/dev/null && DOWNLOADED=true
+    elif [[ "${OS}" == "Darwin" && "${ARCH}" == "arm64" ]]; then
+        URL="https://github.com/mattwparas/steel/releases/download/v0.8.2/steel-interpreter-aarch64-apple-darwin.tar.xz"
+        curl -fsSL "${URL}" | tar -xJf - --strip-components=1 -C "${ROOT_DIR}/bin" steel-interpreter-aarch64-apple-darwin/steel 2>/dev/null && DOWNLOADED=true
+    fi
+    
+    if [[ "${DOWNLOADED}" == "true" && -x "${ROOT_DIR}/bin/steel" ]]; then
+        chmod +x "${ROOT_DIR}/bin/steel"
+        STEEL_BIN="${ROOT_DIR}/bin/steel"
+        echo -e "${GREEN}✓ Successfully downloaded pre-compiled Steel 0.8.2 binary!${NC}"
+    elif command -v cargo >/dev/null 2>&1; then
+        echo -e "${YELLOW}Pre-compiled binary unavailable for ${OS}-${ARCH}; building via cargo...${NC}"
+        cargo install steel-interpreter --version 0.8.2 --locked
+        STEEL_BIN="${HOME}/.cargo/bin/steel"
+    else
+        echo -e "${RED}✗ Failed to download pre-compiled binary and cargo is not installed.${NC}"
+        exit 1
+    fi
 fi
 
 # Link / copy to local bin/

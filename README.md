@@ -6,18 +6,28 @@
 
 ---
 
-## ⚡ Linux 一键安装并立即启动 (One-Liner Install)
+## ⚡ Linux 一键安装、启动与随时复用 (Universal Runner)
 
-在任何 Linux 机器终端中执行以下单行命令，全自动下载配置并**立即启动 Scheme Emacs**：
+在任何 Linux 机器终端中执行以下单行命令，将全自动配置并**立即启动 Scheme Emacs**：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ouut/scheme_emacs/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ouut/scheme_emacs/main/scheme-emacs.sh | bash
 ```
 
-> **💡 智能零依赖适配机制**：
-> * **若系统未安装 Emacs**：自动下载全内置单二进制 AppImage（**无需 root，无需 sudo**，自带 GNU Emacs 29 + Steel 0.8.2）；
-> * **若系统已安装 Emacs**：自动拉取 6.5MB 轻量包并链接到 `~/.local/bin/scheme-emacs`；
-> * 脚本执行完毕后**自动将终端 TTY 连接至编辑器并立即拉起**，直接进入 `sample.scm` 靶场练习！
+### 🔁 幂等性与自我持久化（Run Once, Use Anywhere）
+* **100% 幂等性**：
+  * **首次运行**：检测系统环境，极速安装就绪（宿主无 Emacs 时自动拉取全内置单文件 AppImage，**无需 root / sudo**；已有 Emacs 时安装 6.5MB 轻量包）；
+  * **后续重复运行**：毫秒级秒开，**绝不重复下载**数百兆文件！
+* **自动将脚本留存在当前目录**：
+  * 脚本运行后，会**自动在当前项目目录下创建一份可执行的 `./scheme-emacs.sh`**；
+  * 下次在项目目录写代码时，直接运行：
+    ```bash
+    ./scheme-emacs.sh              # 启动并打开 sample.scm 练习
+    ./scheme-emacs.sh my_code.scm  # 打开指定代码文件
+    ./scheme-emacs.sh -nw          # 终端字符模式
+    ./scheme-emacs.sh --update     # 强制检测并升级到最新版本
+    ```
+  * 当然，继续使用 `curl -fsSL ... | bash` 同样是幂等秒开！并且系统命令 `scheme-emacs` 随时全局可用。
 
 ---
 

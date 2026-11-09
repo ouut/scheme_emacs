@@ -1,13 +1,27 @@
 ;;; init.el --- Master Emacs Configuration for Steel Scheme & Strict Paredit -*- lexical-binding: t; -*-
 
 ;;; ============================================================================
-;;; 1. Environment & PATH Discovery (Cargo / Steel)
+;;; 1. Environment & PATH Discovery (Portable bin, Cargo, Steel)
 ;;; ============================================================================
 
-(let ((cargo-bin (expand-file-name "~/.cargo/bin")))
-  (when (file-directory-p cargo-bin)
-    (add-to-list 'exec-path cargo-bin)
-    (setenv "PATH" (concat cargo-bin ":" (getenv "PATH")))))
+(let* ((init-dir (file-name-directory (or load-file-name buffer-file-name user-init-file)))
+       (portable-bin (expand-file-name "bin" init-dir))
+       (parent-bin (expand-file-name "../bin" init-dir))
+       (cargo-bin (expand-file-name "~/.cargo/bin")))
+  (dolist (dir (list portable-bin parent-bin cargo-bin))
+    (when (file-directory-p dir)
+      (add-to-list 'exec-path dir)
+      (setenv "PATH" (concat dir path-separator (getenv "PATH"))))))
+
+;; Windows (w32 / windows-nt) modifier keys & menu bar configuration
+(when (or (eq system-type 'windows-nt) (eq window-system 'w32))
+  (setq w32-pass-alt-to-system nil)       ; Stop Alt key from opening/activating Windows menu bar
+  (setq w32-alt-is-meta t)                ; Treat Alt key as Meta modifier
+  (setq w32-pass-lwindow-to-system nil)   ; Emacs captures Left Windows key
+  (setq w32-lwindow-modifier 'super)      ; Left Win key acts as Super
+  (setq w32-pass-rwindow-to-system nil)   ; Emacs captures Right Windows key
+  (setq w32-rwindow-modifier 'super)      ; Right Win key acts as Super
+  (setq w32-apps-modifier 'hyper))        ; Menu/App key acts as Hyper
 
 ;; macOS Option key configuration (removes dead key conflicts)
 (when (memq window-system '(mac ns pgtk))
@@ -63,6 +77,19 @@
 (require 'strict-paredit)
 (require 'steel-scheme)
 (require 'ui)
+
+;; Ensure *scratch* buffer defaults to scheme-mode
+(when (get-buffer "*scratch*")
+  (with-current-buffer "*scratch*"
+    (when (memq major-mode '(lisp-interaction-mode fundamental-mode))
+      (scheme-mode))))
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (when (get-buffer "*scratch*")
+              (with-current-buffer "*scratch*"
+                (when (memq major-mode '(lisp-interaction-mode fundamental-mode))
+                  (scheme-mode))))))
 
 ;;; ============================================================================
 ;;; 4. Default Custom File (Keep init.el clean)

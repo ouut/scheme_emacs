@@ -27,6 +27,13 @@
     (should (eq (key-binding (kbd "M-3")) 'mark-defun))
     (should (eq (key-binding (kbd "M-\\")) 'strict-paredit-indent-dwim))
     (should (eq (key-binding (kbd "M-RET")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<M-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "C-RET")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<C-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<s-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "s-h")) 'paredit-wrap-round))
+    (should (eq (key-binding (kbd "s-k")) 'er/expand-region))
+    (should (eq (key-binding (kbd "s-l")) 'paredit-forward-slurp-sexp))
     (should (eq (key-binding (kbd "C-c C-c")) 'steel-send-definition))
     (should (eq (key-binding (kbd "C-c C-b")) 'steel-send-buffer))
     (should (memq (key-binding (kbd "C-c C-z")) '(steel-toggle-repl steel-switch-to-repl)))
@@ -123,3 +130,24 @@
       (should (string-match-p "=> 120" repl-text)))
     (delete-process proc)
     (kill-buffer steel-repl-buffer-name)))
+
+;;; 8. Test Global Fallback Keybindings (Active Across Non-Scheme Buffers)
+(ert-deftest test-global-eval-fallback ()
+  (with-temp-buffer
+    (fundamental-mode)
+    (should (eq (key-binding (kbd "M-RET")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<M-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "C-RET")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<C-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "<s-return>")) 'steel-eval-dwim))
+    (should (eq (key-binding (kbd "C-c C-z")) 'steel-toggle-repl))))
+
+;;; 9. Test Scratch Buffer Configuration
+(ert-deftest test-scratch-buffer-initialization ()
+  (let ((buf (get-buffer "*scratch*")))
+    (when buf
+      (with-current-buffer buf
+        (should (eq major-mode 'scheme-mode))
+        (should (eq (key-binding (kbd "M-RET")) 'steel-eval-dwim))
+        (should (eq (key-binding (kbd "M-h")) 'paredit-wrap-round))
+        (should (eq (key-binding (kbd "M-k")) 'er/expand-region))))))

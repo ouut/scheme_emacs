@@ -23,6 +23,9 @@
 (setq inhibit-startup-screen t)
 (setq inhibit-startup-message t)
 (setq inhibit-startup-echo-area-message (user-login-name))
+
+;; 4. Default scratch buffer to Scheme mode with full 17-key Strict Paredit & Steel REPL
+(setq initial-major-mode 'scheme-mode)
 (setq initial-scratch-message ";; 🪓 Steel Scheme & Strict Paredit Hacker Environment\n;; Press Alt+Enter to evaluate expression | Alt+K to expand region\n\n")
 
 (provide 'early-init)

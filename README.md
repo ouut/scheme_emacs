@@ -237,8 +237,9 @@ chmod +x scheme-emacs-*-linux-x86_64.AppImage
 
 #### 🪟 Windows 用户
 1. 下载 `scheme-emacs-*-windows-x86_64.zip` 并解压到任意目录（例如 `D:\tools\scheme-emacs` 或 U 盘）；
-2. **双击 `run.bat`**：启动图形界面 Emacs（自动静默后台，不弹出 DOS 黑框）；
+2. **双击 `run.bat`**：启动图形界面 Emacs（自动打开 `sample.scm` 演练靶场，全部 17 键 Strict Paredit 与 Steel 解释器就绪）；
 3. **双击 `run-terminal.bat`**：在当前 Windows Terminal / CMD 窗口中以终端字符模式运行。
+> *注：已内置禁用 Windows 菜单栏劫持 Alt 键，`Alt + Enter`、`Alt + H/J/K/L`、`Ctrl + Enter` 及 Win 键（Super）均可直接触发！*
 
 ---
 

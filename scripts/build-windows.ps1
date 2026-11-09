@@ -99,8 +99,18 @@ $LASTEXITCODE = 0
 
 # 2) Byte-compile Elisp modules using initialized environment
 $LispFiles = @((Get-ChildItem (Join-Path $ConfDir "lisp\*.el")).FullName)
-& $EmacsExe --batch --init-directory $ConfDir -L $LispDir -f batch-byte-compile @LispFiles $EarlyInit
+& $EmacsExe --batch --init-directory $ConfDir -L $LispDir --eval '(package-initialize)' -f batch-byte-compile @LispFiles $EarlyInit
 $LASTEXITCODE = 0
+
+# Verify that essential bytecode files compiled successfully
+if (-not (Test-Path (Join-Path $ConfDir "lisp\strict-paredit.elc"))) {
+    Write-Error "❌ Error: strict-paredit.elc failed to compile!"
+    exit 1
+}
+if (-not (Test-Path (Join-Path $ConfDir "lisp\steel-scheme.elc"))) {
+    Write-Error "❌ Error: steel-scheme.elc failed to compile!"
+    exit 1
+}
 
 # 6. Create Launchers (run.bat and run-terminal.bat)
 Write-Host "📦 Step 6: Creating portable launchers..."
@@ -109,7 +119,11 @@ $RunBatContent = @"
 setlocal
 set "SCRIPT_DIR=%~dp0"
 set "PATH=%SCRIPT_DIR%bin;%PATH%"
-start "" "%SCRIPT_DIR%bin\runemacs.exe" --init-directory "%SCRIPT_DIR%share\scheme-emacs" %*
+if "%~1"=="" (
+    start "" "%SCRIPT_DIR%bin\runemacs.exe" --init-directory "%SCRIPT_DIR%share\scheme-emacs" "%SCRIPT_DIR%share\scheme-emacs\sample.scm"
+) else (
+    start "" "%SCRIPT_DIR%bin\runemacs.exe" --init-directory "%SCRIPT_DIR%share\scheme-emacs" %*
+)
 "@
 Set-Content -Path (Join-Path $StageDir "run.bat") -Value $RunBatContent -Encoding ascii
 
@@ -118,7 +132,11 @@ $RunTermBatContent = @"
 setlocal
 set "SCRIPT_DIR=%~dp0"
 set "PATH=%SCRIPT_DIR%bin;%PATH%"
-"%SCRIPT_DIR%bin\emacs.exe" -nw --init-directory "%SCRIPT_DIR%share\scheme-emacs" %*
+if "%~1"=="" (
+    "%SCRIPT_DIR%bin\emacs.exe" -nw --init-directory "%SCRIPT_DIR%share\scheme-emacs" "%SCRIPT_DIR%share\scheme-emacs\sample.scm"
+) else (
+    "%SCRIPT_DIR%bin\emacs.exe" -nw --init-directory "%SCRIPT_DIR%share\scheme-emacs" %*
+)
 "@
 Set-Content -Path (Join-Path $StageDir "run-terminal.bat") -Value $RunTermBatContent -Encoding ascii
 
@@ -128,14 +146,30 @@ $ReadmeTxtContent = @"
 ======================================================================
 
 How to Run:
-  - Double-click 'run.bat' to launch the GUI version.
-  - Double-click 'run-terminal.bat' to launch in console mode.
-  - Open sample.scm to practice the 17-key Strict Paredit shortcuts!
+  - Double-click 'run.bat' to launch the GUI version (opens sample.scm).
+  - Double-click 'run-terminal.bat' to launch in console/terminal mode.
+  - Follow sample.scm to practice the 17-key Strict Paredit shortcuts!
 
-Features:
-  - Bundled Rust Steel Scheme interpreter (steel.exe in bin/)
-  - Pre-compiled 17-key Strict Paredit & Steel REPL
-  - 100% portable, does not modify AppData or registry.
+Keybindings & Evaluation:
+  - Alt + Enter (or Ctrl + Enter) : One-shot evaluation DWIM (region or sexp)
+  - C-c C-z                       : Smart toggle Steel Scheme REPL window
+  - C-c C-c                       : Send top-level definition to REPL
+  - C-c C-b                       : Send whole buffer to REPL
+  - C-c C-q                       : Hide REPL window (process kept alive)
+
+17-Key Strict Paredit System:
+  - Alt + H / Alt + Shift + H     : Wrap with () / Wrap with []
+  - Alt + J / Alt + Shift + J     : Barf left / Split list at point
+  - Alt + K / Alt + Shift + K     : Expand region / Contract region
+  - Alt + L / Alt + Shift + L     : Slurp right / Transpose sexps
+  - Alt + W / Alt + S             : Step into child / Step out to parent
+  - Alt + O                       : Splice / Unwrap outer parenthesis shell
+  - Alt + 1 / Alt + 2 / Alt + 3   : Prev sexp / Next sexp / Select defun
+  - Alt + \                       : Reindent defun / region DWIM
+
+Windows Keyboard Notes:
+  - Both Alt and Win (Super) keys work out of the box.
+  - Alt menu bar interception is disabled so all shortcuts trigger Emacs directly.
 ======================================================================
 "@
 Set-Content -Path (Join-Path $StageDir "README.txt") -Value $ReadmeTxtContent -Encoding ascii

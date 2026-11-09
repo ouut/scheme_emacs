@@ -107,38 +107,59 @@ Directly jumps back to the enclosing parenthesis start."
     ("M-h"     . paredit-wrap-round)               ; Alt + H: Wrap with (...)
     ("M-H"     . paredit-wrap-square)              ; Alt + Shift + H: Wrap with [...]
     ("M-S-h"   . paredit-wrap-square)
+    ("s-h"     . paredit-wrap-round)               ; Super/Win/Cmd + H
+    ("s-H"     . paredit-wrap-square)
+    ("s-S-h"   . paredit-wrap-square)
 
     ;; --- 2. J Axis: Barf & Split ---
     ("M-j"     . paredit-forward-barf-sexp)        ; Alt + J: Left Barf (kick last out)
     ("M-J"     . paredit-split-sexp)               ; Alt + Shift + J: Split list at point
     ("M-S-j"   . paredit-split-sexp)
+    ("s-j"     . paredit-forward-barf-sexp)
+    ("s-J"     . paredit-split-sexp)
+    ("s-S-j"   . paredit-split-sexp)
 
     ;; --- 3. K Axis: Vertical Breathing (Expand / Contract) ---
     ("M-k"     . er/expand-region)                 ; Alt + K: Expand selection
     ("M-K"     . er/contract-region)               ; Alt + Shift + K: Contract selection
     ("M-S-k"   . er/contract-region)
+    ("s-k"     . er/expand-region)
+    ("s-K"     . er/contract-region)
+    ("s-S-k"   . er/contract-region)
 
     ;; --- 4. L Axis: Slurp & Transpose ---
     ("M-l"     . paredit-forward-slurp-sexp)       ; Alt + L: Right Slurp (pull in)
     ("M-L"     . strict-paredit-transpose-dwim)    ; Alt + Shift + L: Transpose adjacent
     ("M-S-l"   . strict-paredit-transpose-dwim)
+    ("s-l"     . paredit-forward-slurp-sexp)
+    ("s-L"     . strict-paredit-transpose-dwim)
+    ("s-S-l"   . strict-paredit-transpose-dwim)
 
     ;; --- 5. W / S Depth Traversal ---
     ("M-w"     . strict-paredit-step-into)         ; Alt + W: Step into (钻入)
     ("M-s"     . strict-paredit-step-out)          ; Alt + S: Step out (跳出)
+    ("s-w"     . strict-paredit-step-into)
+    ("s-s"     . strict-paredit-step-out)
 
     ;; --- 6. O Axis: Splice / Unwrap ---
     ("M-o"     . strict-paredit-splice-dwim)       ; Alt + O: Splice shell
+    ("s-o"     . strict-paredit-splice-dwim)
 
     ;; --- 7. Fast Navigation & Selection (1, 2, 3) ---
     ("M-1"     . paredit-backward)                 ; Alt + 1: Step backward sexp
     ("M-2"     . paredit-forward)                  ; Alt + 2: Step forward sexp
     ("M-3"     . mark-defun)                       ; Alt + 3: Select top-level defun
+    ("s-1"     . paredit-backward)
+    ("s-2"     . paredit-forward)
+    ("s-3"     . mark-defun)
 
     ;; --- 8. Reindent & Kill Sexp ---
     ("M-\\"    . strict-paredit-indent-dwim)       ; Alt + \: Smart indent
+    ("s-\\"    . strict-paredit-indent-dwim)
     ("M-X"     . strict-paredit-kill-sexp-dwim)    ; Alt + Shift + X: Kill sexp
     ("M-S-x"   . strict-paredit-kill-sexp-dwim)
+    ("s-X"     . strict-paredit-kill-sexp-dwim)
+    ("s-S-x"   . strict-paredit-kill-sexp-dwim)
     ("C-M-k"   . strict-paredit-kill-sexp-dwim)    ; Standard Emacs kill-sexp
     ))
 
@@ -163,6 +184,12 @@ Directly jumps back to the enclosing parenthesis start."
   (setq-local show-paren-style 'parenthesis)
   (when (fboundp 'rainbow-delimiters-mode)
     (rainbow-delimiters-mode 1)))
+
+;; Hook into all Lisp/Scheme editing modes
+(add-hook 'scheme-mode-hook #'strict-paredit-enable)
+(add-hook 'lisp-mode-hook #'strict-paredit-enable)
+(add-hook 'emacs-lisp-mode-hook #'strict-paredit-enable)
+(add-hook 'lisp-interaction-mode-hook #'strict-paredit-enable)
 
 (provide 'strict-paredit)
 ;;; strict-paredit.el ends here

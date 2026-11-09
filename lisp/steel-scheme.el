@@ -38,8 +38,11 @@
 
 (defcustom steel-program-name
   (or (executable-find "steel")
+      (executable-find "steel.exe")
       (let ((cargo-steel (expand-file-name "~/.cargo/bin/steel")))
         (when (file-executable-p cargo-steel) cargo-steel))
+      (let ((cargo-steel-win (expand-file-name "~/.cargo/bin/steel.exe")))
+        (when (file-executable-p cargo-steel-win) cargo-steel-win))
       "steel")
   "Path to the Rust Steel Scheme executable."
   :type 'string
@@ -274,17 +277,19 @@ Pre-cleans unnecessary blank/comment lines to prevent prompt accumulation."
         (setq start (car bounds)
               end (cdr bounds)))))
 
-    (when (and start end (< start end))
-      (setq code (buffer-substring-no-properties start end))
-      ;; Visual flash feedback
-      (when (fboundp 'pulse-momentary-highlight-region)
-        (pulse-momentary-highlight-region start end 'highlight))
-      ;; Send to Steel REPL
-      (steel-send-string code)
-      (message "λ => Sent to Steel REPL: %s"
-               (truncate-string-to-width
-                (replace-regexp-in-string "[\n\t ]+" " " (string-trim code))
-                50 0 nil "...")))))
+    (if (and start end (< start end))
+        (progn
+          (setq code (buffer-substring-no-properties start end))
+          ;; Visual flash feedback
+          (when (fboundp 'pulse-momentary-highlight-region)
+            (pulse-momentary-highlight-region start end 'highlight))
+          ;; Send to Steel REPL
+          (steel-send-string code)
+          (message "λ => Sent to Steel REPL: %s"
+                   (truncate-string-to-width
+                    (replace-regexp-in-string "[\n\t ]+" " " (string-trim code))
+                    50 0 nil "...")))
+      (message "λ => No S-expression or active region at point to evaluate."))))
 
 ;;;###autoload
 (defun steel-send-definition ()
@@ -383,12 +388,18 @@ Pre-cleans unnecessary blank/comment lines to prevent prompt accumulation."
 
 (defvar steel-mode-map
   (let ((map (make-sparse-keymap)))
-    ;; Eval REPL shortcuts
+    ;; Eval REPL shortcuts (Supports GUI, Terminal, Numpad, and Super/Cmd)
     (define-key map (kbd "M-RET")        #'steel-eval-dwim)
     (define-key map (kbd "<M-return>")   #'steel-eval-dwim)
+    (define-key map (kbd "<M-kp-enter>") #'steel-eval-dwim)
     (define-key map (kbd "C-RET")        #'steel-eval-dwim)
     (define-key map (kbd "<C-return>")   #'steel-eval-dwim)
-    (define-key map (kbd "<s-return>")   #'steel-eval-dwim) ; macOS Cmd+Enter
+    (define-key map (kbd "<C-kp-enter>") #'steel-eval-dwim)
+    (define-key map (kbd "<s-return>")   #'steel-eval-dwim) ; macOS Cmd+Enter / Windows Win+Enter
+    (define-key map (kbd "s-RET")        #'steel-eval-dwim)
+    (define-key map (kbd "<s-kp-enter>") #'steel-eval-dwim)
+    (define-key map (kbd "ESC RET")      #'steel-eval-dwim) ; Terminal Alt+Enter
+    (define-key map (kbd "ESC <return>") #'steel-eval-dwim)
 
     ;; Standard Scheme interaction bindings
     (define-key map (kbd "C-c C-c")      #'steel-send-definition)
@@ -402,10 +413,29 @@ Pre-cleans unnecessary blank/comment lines to prevent prompt accumulation."
     (define-key map (kbd "C-c C-k")      #'steel-restart-repl)
     (define-key map (kbd "C-c C-s")      #'run-steel)
 
-    ;; Apply the 17 Strict Paredit shortcuts directly into scheme keymap too
+    ;; Apply the Strict Paredit shortcuts directly into scheme keymap too
     (strict-paredit-apply-keys map)
     map)
   "Keymap for Steel Scheme mode.")
+
+;;; ============================================================================
+;;; Global Fallback Bindings
+;;; ============================================================================
+
+;; Ensure one-shot evaluation and REPL toggle work anywhere (scratch, repl, etc.)
+(global-set-key (kbd "M-RET")        #'steel-eval-dwim)
+(global-set-key (kbd "<M-return>")   #'steel-eval-dwim)
+(global-set-key (kbd "<M-kp-enter>") #'steel-eval-dwim)
+(global-set-key (kbd "C-RET")        #'steel-eval-dwim)
+(global-set-key (kbd "<C-return>")   #'steel-eval-dwim)
+(global-set-key (kbd "<C-kp-enter>") #'steel-eval-dwim)
+(global-set-key (kbd "<s-return>")   #'steel-eval-dwim)
+(global-set-key (kbd "s-RET")        #'steel-eval-dwim)
+(global-set-key (kbd "<s-kp-enter>") #'steel-eval-dwim)
+(global-set-key (kbd "ESC RET")      #'steel-eval-dwim)
+(global-set-key (kbd "ESC <return>") #'steel-eval-dwim)
+(global-set-key (kbd "C-c C-z")      #'steel-toggle-repl)
+(global-set-key (kbd "C-c C-s")      #'run-steel)
 
 (define-minor-mode steel-mode
   "Minor mode for Steel Scheme development."

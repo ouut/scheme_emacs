@@ -1,0 +1,83 @@
+name: Build & Release Standalone Distribution
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Release Standalone Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/steel
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-steel-0.8.2
+
+      - name: Install Rust Steel Scheme Interpreter
+        run: |
+          if ! command -v steel >/dev/null 2>&1; then
+            echo "Installing steel-interpreter 0.8.2..."
+            cargo install steel-interpreter --version 0.8.2 --locked
+          fi
+          mkdir -p bin
+          cp "$(command -v steel)" bin/steel
+          strip bin/steel
+          echo "Steel version: $(./bin/steel --version)"
+
+      - name: Install Emacs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y emacs-nox
+
+      - name: Run ERT Automated Test Suite
+        run: |
+          emacs-nox -batch -l test_config.el -f ert-run-tests-batch-and-exit
+
+      - name: Build Standalone Distribution Package
+        run: |
+          VERSION="${{ github.ref_name }}"
+          if [[ -z "${VERSION}" || "${VERSION}" == "main" ]]; then
+            VERSION="v0.1.0-$(git rev-parse --short HEAD)"
+          fi
+          VERSION="${VERSION}" ./scripts/build.sh
+
+      - name: Upload Build Artifacts to CI Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheme-emacs-release-artifacts
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+
+      - name: Publish to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.sha256
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

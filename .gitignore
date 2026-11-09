@@ -6,6 +6,12 @@
 auto-save-list/
 eln-cache/
 custom.el
+*.pdmp
+
+# Packages and build outputs (assembled via scripts/build.sh or CI)
+dist/
+elpa/
+bin/steel
 
 # OS & Editor files
 .DS_Store

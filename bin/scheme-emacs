@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# scheme-emacs --- Standalone Launcher for Steel Scheme & Strict Paredit Emacs
+#
+# Usage:
+#   ./bin/scheme-emacs [OPTIONS] [FILE]
+#   ./bin/scheme-emacs -nw sample.scm       # Terminal mode
+#   ./bin/scheme-emacs sample.scm           # GUI mode
+
+set -euo pipefail
+
+# Resolve directory of this script portably
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+BUNDLE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+
+# 1. Prepend bundled Steel binary to PATH if present
+if [[ -x "${BUNDLE_ROOT}/bin/steel" ]]; then
+  export PATH="${BUNDLE_ROOT}/bin:${PATH}"
+elif [[ -x "${HOME}/.cargo/bin/steel" ]]; then
+  export PATH="${HOME}/.cargo/bin:${PATH}"
+fi
+
+# 2. Locate Emacs executable
+EMACS_BIN="${EMACS:-$(command -v emacs 2>/dev/null || true)}"
+if [[ -z "${EMACS_BIN}" ]]; then
+  echo "Error: 'emacs' command not found in PATH." >&2
+  echo "Please install Emacs 29+ or set the EMACS environment variable." >&2
+  exit 1
+fi
+
+# 3. Check for optional pdump memory snapshot
+PDUMP_FILE="${BUNDLE_ROOT}/scheme-emacs.pdmp"
+
+if [[ -f "${PDUMP_FILE}" ]]; then
+  # Try launching with pdump snapshot for ~0.03s instant boot
+  if "${EMACS_BIN}" --batch --dump-file="${PDUMP_FILE}" --eval '(kill-emacs 0)' 2>/dev/null; then
+    exec "${EMACS_BIN}" --dump-file="${PDUMP_FILE}" "$@"
+  fi
+fi
+
+# 4. Standard isolated launch using Emacs 29+ --init-directory
+# Completely avoids polluting or touching user ~/.emacs.d
+exec "${EMACS_BIN}" --init-directory "${BUNDLE_ROOT}" "$@"

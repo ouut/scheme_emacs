@@ -1,0 +1,17 @@
+# Emacs auto-save, lock, and byte-compiled files
+*~
+\#*\#
+.\#*
+*.elc
+auto-save-list/
+eln-cache/
+custom.el
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Scratch files
+scratch/

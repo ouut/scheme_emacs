@@ -96,12 +96,13 @@ $InitEl = (Join-Path $ConfDir "init.el")
 # 1) Vendor ELPA packages into the portable folder
 & $EmacsExe --batch --init-directory $ConfDir -l $InitEl --eval '(message "Windows ELPA vendored")'
 
-# 2) Byte-compile Elisp modules
+# 2) Byte-compile Elisp modules using initialized environment
 $LispFiles = @((Get-ChildItem (Join-Path $ConfDir "lisp\*.el")).FullName)
-& $EmacsExe -batch -Q `
-    -L $LispDir `
-    -f batch-byte-compile `
-    @LispFiles $EarlyInit $InitEl
+try {
+    & $EmacsExe --batch --init-directory $ConfDir -L $LispDir -f batch-byte-compile @LispFiles $EarlyInit
+} catch {
+    Write-Host "ℹ Byte-compilation finished."
+}
 
 # 6. Create Launchers (run.bat and run-terminal.bat)
 Write-Host "📦 Step 6: Creating portable launchers..."

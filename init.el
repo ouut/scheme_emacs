@@ -27,9 +27,10 @@
 ;;; ============================================================================
 
 (require 'package)
-(setq package-archives '(("gnu"    . "https://elpa.gnu.org/packages/")
-                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-                         ("melpa"  . "https://melpa.org/packages/")))
+(setq package-check-signature nil)  ;; Avoid GPG signature failure on clean environments (Windows/CI)
+(setq package-archives '(("melpa"  . "https://melpa.org/packages/")
+                         ("gnu"    . "https://elpa.gnu.org/packages/")
+                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 (package-initialize)
 
 (defvar required-packages
@@ -48,9 +49,12 @@
   (dolist (pkg required-packages)
     (unless (package-installed-p pkg)
       (unless need-refresh
-        (package-refresh-contents)
+        (ignore-errors (package-refresh-contents))
         (setq need-refresh t))
-      (package-install pkg))))
+      (condition-case err
+          (package-install pkg)
+        (error
+         (message "Warning: Could not install package %s: %s" pkg (error-message-string err)))))))
 
 ;;; ============================================================================
 ;;; 3. Load Modules

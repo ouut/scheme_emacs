@@ -87,22 +87,21 @@ if (Test-Path (Join-Path $RootDir "elpa")) {
 }
 
 # 5. Pre-compile bytecode using bundled emacs.exe
-Write-Host "📦 Step 5: Byte-compiling Elisp modules..."
+Write-Host "📦 Step 5: Vendoring packages and byte-compiling Elisp modules..."
 $EmacsExe = Join-Path $StageBin "emacs.exe"
 $LispDir = Join-Path $ConfDir "lisp"
-$LispFiles = @((Get-ChildItem (Join-Path $ConfDir "lisp\*.el")).FullName)
 $EarlyInit = (Join-Path $ConfDir "early-init.el")
 $InitEl = (Join-Path $ConfDir "init.el")
 
+# 1) Vendor ELPA packages into the portable folder
+& $EmacsExe --batch --init-directory $ConfDir -l $InitEl --eval '(message "Windows ELPA vendored")'
+
+# 2) Byte-compile Elisp modules
+$LispFiles = @((Get-ChildItem (Join-Path $ConfDir "lisp\*.el")).FullName)
 & $EmacsExe -batch -Q `
     -L $LispDir `
-    -l $EarlyInit `
-    -l $InitEl `
     -f batch-byte-compile `
     @LispFiles $EarlyInit $InitEl
-
-# Vendor ELPA packages into the portable folder
-& $EmacsExe --batch --init-directory $ConfDir -l $InitEl --eval '(message "Windows ELPA vendored")'
 
 # 6. Create Launchers (run.bat and run-terminal.bat)
 Write-Host "📦 Step 6: Creating portable launchers..."

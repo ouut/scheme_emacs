@@ -6,6 +6,21 @@
 
 ---
 
+## ⚡ Linux 一键安装并立即启动 (One-Liner Install)
+
+在任何 Linux 机器终端中执行以下单行命令，全自动下载配置并**立即启动 Scheme Emacs**：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ouut/scheme_emacs/main/install.sh | bash
+```
+
+> **💡 智能零依赖适配机制**：
+> * **若系统未安装 Emacs**：自动下载全内置单二进制 AppImage（**无需 root，无需 sudo**，自带 GNU Emacs 29 + Steel 0.8.2）；
+> * **若系统已安装 Emacs**：自动拉取 6.5MB 轻量包并链接到 `~/.local/bin/scheme-emacs`；
+> * 脚本执行完毕后**自动将终端 TTY 连接至编辑器并立即拉起**，直接进入 `sample.scm` 靶场练习！
+
+---
+
 ## 🧠 核心心智模型（The Strict Paredit Mindset）
 
 在传统字符编辑器中，括号只是零散的文本标点；而在 **Strict Paredit** 哲学下：

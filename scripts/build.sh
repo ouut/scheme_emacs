@@ -52,19 +52,13 @@ cp -r "${ROOT_DIR}"/lisp/* "${STAGE_DIR}/lisp/"
 echo "📦 Step 2: Vendoring and pre-compiling ELPA packages..."
 mkdir -p "${STAGE_DIR}/elpa"
 
-# If we already have elpa locally, copy it; otherwise download via emacs batch
+# If we already have elpa locally or in ~/.emacs.d, copy it; otherwise install via emacs batch
 if [[ -d "${ROOT_DIR}/elpa" && -n "$(ls -A "${ROOT_DIR}/elpa" 2>/dev/null)" ]]; then
   cp -r "${ROOT_DIR}"/elpa/* "${STAGE_DIR}/elpa/"
+elif [[ -d "${HOME}/.emacs.d/elpa" && -n "$(ls -A "${HOME}/.emacs.d/elpa" 2>/dev/null)" ]]; then
+  cp -r "${HOME}"/.emacs.d/elpa/* "${STAGE_DIR}/elpa/"
 else
-  emacs --batch --init-directory "${STAGE_DIR}" --eval '
-    (progn
-      (require (quote package))
-      (package-initialize)
-      (unless package-archive-contents
-        (package-refresh-contents))
-      (dolist (pkg required-packages)
-        (unless (package-installed-p pkg)
-          (package-install pkg))))'
+  emacs --batch --init-directory "${STAGE_DIR}" -l "${STAGE_DIR}/init.el" --eval '(message "Packages installed into %s" package-user-dir)'
 fi
 
 # 4. Bundle Steel Scheme binary
